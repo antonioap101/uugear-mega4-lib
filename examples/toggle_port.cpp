@@ -7,13 +7,13 @@ int main() {
         auto devices = hub.listDevices();
 
         if (devices.empty()) {
-            std::cout << "No MEGA4 hubs detected. Enabling simulation mode.\n";
-            hub.setSimulationMode(true);
-        } else {
-            std::cout << "Detected " << devices.size() << " hub(s):\n";
-            for (auto& d : devices)
-                std::cout << " - " << d.description << " @ " << d.busPortPath << "\n";
+            std::cout << "No MEGA4 hubs detected.\n";
+            return 1;
         }
+
+        std::cout << "Detected " << devices.size() << " hub(s):\n";
+        for (auto& d : devices)
+            std::cout << " - " << d.description << " @ " << d.busPortPath << "\n";
 
         std::cout << "Turning port 1 ON...\n";
         hub.powerOn(1);

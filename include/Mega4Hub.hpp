@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <array>
 
 /**
  * @brief C++ interface for controlling the UUGear MEGA4 USB hub.
@@ -18,6 +19,16 @@ public:
         uint16_t vid; ///< Vendor ID (0x2109)
         uint16_t pid; ///< Product ID (0x2817 or 0x0817)
         std::string description; ///< Human-readable description
+    };
+
+    struct PortConnectionInfo
+    {
+        int portNumber; ///< 1–4 for MEGA4
+        bool hasDevice; ///< True if a device is connected
+        uint16_t vid = 0; ///< Vendor ID (if any)
+        uint16_t pid = 0; ///< Product ID (if any)
+        std::string manufacturer; ///< Optional string from descriptor
+        std::string product; ///< Optional string from descriptor
     };
 
     /**
@@ -52,10 +63,23 @@ public:
     void powerOff(int port, int deviceIndex = 0) const;
 
     /**
-     * @brief Enables or disables simulation mode (no hardware access).
-     *        Useful for unit tests.
+     * @brief Queries the actual ON/OFF power state for all four ports
+     *        of a specific MEGA4 hub by reading from hardware.
+     * @param deviceIndex Index of the detected hub (default = 0).
+     * @return Array<bool,4> with true = ON, false = OFF.
+     * @throws std::out_of_range or std::runtime_error on failure.
      */
-    void setSimulationMode(bool enabled) const;
+    [[nodiscard]] std::array<bool, 4> getPortStates(int deviceIndex = 0) const;
+
+    [[nodiscard]] bool isPortOn(int port, int deviceIndex = 0) const;
+
+    /**
+ * @brief Lists all devices connected to each of the 4 downstream ports
+ *        of a MEGA4 hub.
+ * @param deviceIndex Index of the detected hub (default = 0)
+ * @return Vector of 4 entries, one per port.
+ */
+    [[nodiscard]] std::vector<PortConnectionInfo> getPortConnections(int deviceIndex = 0) const;
 
 private:
     struct Impl;

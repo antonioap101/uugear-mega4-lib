@@ -34,6 +34,9 @@ add_library(uugear_mega4_lib STATIC src/Mega4Hub.cpp)
 target_include_directories(uugear_mega4_lib PUBLIC include ${LIBUSB_INCLUDE_DIRS})
 target_link_libraries(uugear_mega4_lib ${LIBUSB_LIBRARIES})
 
+message(STATUS "LIBUSB_INCLUDE_DIRS: ${LIBUSB_INCLUDE_DIRS}")
+message(STATUS "LIBUSB_LIBRARIES: ${LIBUSB_LIBRARIES}")
+
 # =======================================================
 # 3. Usage example: toggle_port
 # =======================================================
@@ -56,9 +59,9 @@ enable_testing()
 
 add_executable(tests
         tests/test_Mega4Hub.cpp
-        examples/toggle_port.cpp
-        include/Mega4Hub.hpp
         tests/test_Mega4Hub.cpp
+        tests/test_main.cpp
+#        include/Mega4Hub.hpp
 )
 target_link_libraries(tests
         uugear_mega4_lib
