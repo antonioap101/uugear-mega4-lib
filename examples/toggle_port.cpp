@@ -1,12 +1,15 @@
-#include "Mega4Hub.hpp"
+#include "UUGear/Mega4/Mega4Hub.hpp"
 #include <iostream>
 
-int main() {
-    try {
-        Mega4Hub hub;
+int main()
+{
+    try
+    {
+        UUGear::Mega4::Mega4Hub hub;
         auto devices = hub.listDevices();
 
-        if (devices.empty()) {
+        if (devices.empty())
+        {
             std::cout << "No MEGA4 hubs detected.\n";
             return 1;
         }
@@ -20,8 +23,9 @@ int main() {
 
         std::cout << "Turning port 1 OFF...\n";
         hub.powerOff(1);
-
-    } catch (const std::exception& ex) {
+    }
+    catch (const std::exception& ex)
+    {
         std::cerr << "Error: " << ex.what() << "\n";
         return 1;
     }

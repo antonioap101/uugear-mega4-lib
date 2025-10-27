@@ -1,27 +1,29 @@
+#include <thread>
 #include <gtest/gtest.h>
-#include "Mega4Hub.hpp"
+#include "UUGear/Mega4/Mega4Hub.hpp"
+#include "UUGear/Mega4/Mega4Types.hpp"
 
 TEST(Mega4Hub, DetectsAvailableHubs)
 {
-    Mega4Hub hub;
+    UUGear::Mega4::Mega4Hub hub;
     const auto devices = hub.listDevices();
     EXPECT_GE(devices.size(), 0);
 }
 
 TEST(Mega4Hub, PortToggleSimulated)
 {
-    Mega4Hub hub;
+    UUGear::Mega4::Mega4Hub hub;
     // Solo simula si no hay hardware
     ASSERT_NO_THROW({
         hub.powerOn(1);
-        sleep(1); // small delay to simulate time for power on
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // small delay to simulate time for power on
         hub.powerOff(1);
         });
 }
 
 TEST(Mega4Hub, InvalidPortHandling)
 {
-    Mega4Hub hub;
+    UUGear::Mega4::Mega4Hub hub;
     // Probar con un puerto inválido
     EXPECT_THROW(hub.powerOn(99), std::out_of_range);
     EXPECT_THROW(hub.powerOff(99), std::out_of_range);
@@ -29,11 +31,11 @@ TEST(Mega4Hub, InvalidPortHandling)
 
 TEST(Mega4Hub, PowerOnAssert)
 {
-    Mega4Hub hub;
+    UUGear::Mega4::Mega4Hub hub;
     // Turns on a port and verifies no exception is thrown
     ASSERT_NO_THROW({
         hub.powerOff(2);
-        sleep(1); // small delay to simulate time for power off
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // small delay to simulate time for power on
         hub.powerOn(2);
         });
     // Check that the port is on
@@ -42,12 +44,12 @@ TEST(Mega4Hub, PowerOnAssert)
 
 TEST(Mega4Hub, PowerOffAssert)
 {
-    Mega4Hub hub;
+    UUGear::Mega4::Mega4Hub hub;
 
     // Turns off a port and verifies no exception is thrown
     ASSERT_NO_THROW({
         hub.powerOn(2);
-        sleep(1); // small delay to simulate time for power on
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // small delay to simulate time for power on
         hub.powerOff(2);
         });
     // Check that the port is off
@@ -57,14 +59,14 @@ TEST(Mega4Hub, PowerOffAssert)
 
 TEST(Mega4Hub, MultiplePortControlSimulated)
 {
-    Mega4Hub hub;
+    UUGear::Mega4::Mega4Hub hub;
     // Simula el encendido y apagado de múltiples puertos
     ASSERT_NO_THROW({
         for (int port = 1; port <= 4; ++port)
         {
         hub.powerOn(port);
         }
-        sleep(1); // small delay to simulate time for power on
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // small delay to simulate time for power on
         for (int port = 1; port <= 4; ++port)
         {
         hub.powerOff(port);
@@ -75,7 +77,7 @@ TEST(Mega4Hub, MultiplePortControlSimulated)
 
 TEST(Mega4Hub, PortConnectionEnumeration)
 {
-    Mega4Hub hub;
+    UUGear::Mega4::Mega4Hub hub;
 
     ASSERT_NO_THROW({
         const auto devices = hub.listDevices();
@@ -116,7 +118,7 @@ TEST(Mega4Hub, PortConnectionEnumeration)
 
 TEST(Mega4Hub, PortConnectionAndPowerStateConsistency)
 {
-    Mega4Hub hub;
+    UUGear::Mega4::Mega4Hub hub;
 
     ASSERT_NO_THROW({
         const auto devices = hub.listDevices();

@@ -2,35 +2,22 @@
 #define UUGEAR_MEGA4HUB_HPP
 
 #include <vector>
-#include <string>
-#include <cstdint>
 #include <array>
+
+namespace UUGear::Mega4
+{
+    class Mega4Hub;
+    struct DeviceInfo;
+    struct PortConnectionInfo;
+}
 
 /**
  * @brief C++ interface for controlling the UUGear MEGA4 USB hub.
  *        It uses libusb to perform standard USB Hub Class requests.
  */
-class Mega4Hub
+class UUGear::Mega4::Mega4Hub
 {
 public:
-    struct DeviceInfo
-    {
-        std::string busPortPath; ///< Example: "1-1.2"
-        uint16_t vid; ///< Vendor ID (0x2109)
-        uint16_t pid; ///< Product ID (0x2817 or 0x0817)
-        std::string description; ///< Human-readable description
-    };
-
-    struct PortConnectionInfo
-    {
-        int portNumber; ///< 1–4 for MEGA4
-        bool hasDevice; ///< True if a device is connected
-        uint16_t vid = 0; ///< Vendor ID (if any)
-        uint16_t pid = 0; ///< Product ID (if any)
-        std::string manufacturer; ///< Optional string from descriptor
-        std::string product; ///< Optional string from descriptor
-    };
-
     /**
      * @brief Initializes libusb. Does not open any device yet.
      * @throws std::runtime_error if libusb initialization fails.
@@ -46,7 +33,7 @@ public:
      * @brief Scans the USB bus for VIA Labs VL817 hubs (used in MEGA4).
      * @return A list of detected hubs.
      */
-    std::vector<DeviceInfo> listDevices() const;
+    [[nodiscard]] std::vector<DeviceInfo> listDevices() const;
 
     /**
      * @brief Turns a port ON.
