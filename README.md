@@ -54,7 +54,7 @@ include(FetchContent)
 FetchContent_Declare(
     uugear_mega4_lib
     GIT_REPOSITORY https://github.com/antonioap101/uugear-mega4-lib.git
-    GIT_TAG main
+    GIT_TAG master
 )
 FetchContent_MakeAvailable(uugear_mega4_lib)
 
