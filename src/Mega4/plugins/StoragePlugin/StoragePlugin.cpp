@@ -1,4 +1,4 @@
-#include "StoragePlugin.hpp"
+#include "UUGear/Mega4/plugins/StoragePlugin.hpp"
 
 #include "UUGear/Mega4/Mega4Types.hpp"
 
@@ -104,7 +104,7 @@ namespace UUGear::Mega4
      */
     bool StoragePlugin::mountDevice(const std::string& device, const std::string& mountPoint)
     {
-        std::string cmd = "mount " + device + " " + mountPoint + " 2>/dev/null";
+        const std::string cmd = "mount " + device + " " + mountPoint + " 2>/dev/null";
         return system(cmd.c_str()) == 0;
     }
 
@@ -113,9 +113,78 @@ namespace UUGear::Mega4
      */
     bool StoragePlugin::unmountDevice(const std::string& mountPoint)
     {
-        std::string cmd = "umount " + mountPoint + " 2>/dev/null";
+        const std::string cmd = "umount " + mountPoint + " 2>/dev/null";
         return system(cmd.c_str()) == 0;
     }
+
+    /**
+  * Returns the path of the mounted device for the given PortConnectionInfo.
+  * It dynamically checks if the device is mounted.
+  */
+    std::string StoragePlugin::getMountPoint(const PortConnectionInfo& info) const
+    {
+        // Ensure that the port number is within a valid range
+        if (info.portNumber < 1 || info.portNumber > 4)
+        {
+            throw std::invalid_argument("Invalid port number: " + std::to_string(info.portNumber));
+        }
+
+        // Construct the expected mount point based on the port number
+        const std::string mountPoint = "/mnt/mega4/port" + std::to_string(info.portNumber);
+
+        // Verify that the mount point exists and is a valid directory
+        if (fs::exists(mountPoint) && fs::is_directory(mountPoint))
+        {
+            return mountPoint;
+        }
+        else
+        {
+            throw std::runtime_error("Mount point not found or is not a directory for port " + std::to_string(info.portNumber));
+        }
+    }
+
+    bool StoragePlugin::writeToFile(const PortConnectionInfo& info, const std::string& filename, const std::string& data)
+    {
+        std::string mountPoint = getMountPoint(info);
+        if (mountPoint.empty()) {
+            std::cerr << "[StoragePlugin] Device is not mounted, cannot write to file." << std::endl;
+            return false;
+        }
+
+        std::string filePath = mountPoint + "/" + filename;
+
+        std::ofstream outFile(filePath);
+        if (!outFile) {
+            std::cerr << "[StoragePlugin] Failed to open file for writing: " << filePath << std::endl;
+            return false;
+        }
+
+        outFile << data;
+        outFile.close();
+        return true;
+    }
+
+    std::string StoragePlugin::readFromFile(const PortConnectionInfo& info, const std::string& filename)
+    {
+        std::string mountPoint = getMountPoint(info);
+        if (mountPoint.empty()) {
+            std::cerr << "[StoragePlugin] Device is not mounted, cannot read from file." << std::endl;
+            return "";
+        }
+
+        std::string filePath = mountPoint + "/" + filename;
+        std::ifstream inFile(filePath);
+        if (!inFile) {
+            std::cerr << "[StoragePlugin] Failed to open file for reading: " << filePath << std::endl;
+            return "";
+        }
+
+        std::stringstream buffer;
+        buffer << inFile.rdbuf();
+        return buffer.str();
+    }
+
+
 } // namespace UUGear::Mega4
 
 // Dynamic plugin factory entry points

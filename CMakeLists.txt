@@ -10,13 +10,12 @@ option(UUGEAR_INSTALL "Install targets" OFF)
 option(UUGEAR_LINK_CORE_LIB "Link plugins against core library" ON)
 
 
-
 include(FetchContent)
 include(CTest)
 
-# ===============================
+#-----------------------------------------------
 # libusb (paquete o FetchContent)
-# ===============================
+#-----------------------------------------------
 find_package(PkgConfig QUIET)
 if (PkgConfig_FOUND)
     pkg_check_modules(LIBUSB libusb-1.0)
@@ -36,18 +35,18 @@ else ()
     message(STATUS "libusb found in system")
 endif ()
 
-# ===============================
+#-----------------------------------------------
 # Opciones
-# ===============================
+#-----------------------------------------------
 option(UUGEAR_BUILD_PLUGINS "Build bundled plugins" ON)
 option(UUGEAR_INSTALL "Install targets" ON)
 
 # Carpeta de salida para plugins en build tree
 set(UUGEAR_PLUGIN_OUTPUT_DIR "${CMAKE_BINARY_DIR}/plugins")
 
-# ===============================
+#-----------------------------------------------
 # Core library (API + Hub + Manager)
-# ===============================
+#-----------------------------------------------
 add_library(uugear_mega4_lib STATIC
         src/Mega4/Mega4Hub.cpp
         src/Mega4/plugins/PluginManager.cpp
@@ -67,9 +66,9 @@ if (UNIX AND NOT APPLE)
     target_link_libraries(uugear_mega4_lib PRIVATE dl)
 endif ()
 
-# ===============================
+#-----------------------------------------------
 # Plugins (MODULE)
-# ===============================
+#-----------------------------------------------
 
 # --------------- Function to simplify plugin registration ---------------
 function(register_uugear_plugin plugin_name plugin_src)
@@ -97,19 +96,37 @@ function(register_uugear_plugin plugin_name plugin_src)
     message(STATUS "Registered plugin: ${plugin_name}")
 endfunction()
 
-
-file(GLOB PLUGIN_DIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/src/Mega4/plugins" "${CMAKE_CURRENT_SOURCE_DIR}/src/Mega4/plugins/*")
-
-foreach (dir ${PLUGIN_DIRS})
-    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Mega4/plugins/${dir}/${dir}.cpp")
-        register_uugear_plugin(${dir} "src/Mega4/plugins/${dir}/${dir}.cpp")
+# --------------- Check file existence function  ---------------
+function(check_file_existence file_path)
+    if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${file_path}")
+        message(FATAL_ERROR "Required file not found: ${CMAKE_CURRENT_SOURCE_DIR}/${file_path}")
     endif ()
-endforeach ()
+endfunction()
+
+if (UUGEAR_BUILD_PLUGINS)
+    #    file(GLOB PLUGIN_DIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/src/Mega4/plugins" "${CMAKE_CURRENT_SOURCE_DIR}/src/Mega4/plugins/*")
+
+    #    foreach (dir ${PLUGIN_DIRS})
+    #        if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Mega4/plugins/${dir}/${dir}.cpp")
+    #            register_uugear_plugin(${dir} "src/Mega4/plugins/${dir}/${dir}.cpp")
+    #        endif ()
+    #    endforeach ()
+
+    # --- Storage Plugin ---
+    set(UUGEAR_STORAGE_PLUGIN_INCLUDE "include/UUGear/Mega4/plugins/StoragePlugin.hpp")
+    check_file_existence(${UUGEAR_STORAGE_PLUGIN_INCLUDE})
+
+    set(UUGEAR_STORAGE_PLUGIN_SOURCE "src/Mega4/plugins/StoragePlugin/StoragePlugin.cpp")
+    check_file_existence(${UUGEAR_STORAGE_PLUGIN_SOURCE})
+
+    register_uugear_plugin(uugear_mega4_StoragePlugin ${UUGEAR_STORAGE_PLUGIN_SOURCE})
+    add_compile_definitions(UUGEAR_HAS_STORAGE_PLUGIN)
+endif ()
 
 
-# ===============================
+#-----------------------------------------------
 # Ejemplo
-# ===============================
+#-----------------------------------------------
 add_executable(toggle_port examples/toggle_port.cpp)
 target_link_libraries(toggle_port uugear_mega4_lib)
 
@@ -125,9 +142,9 @@ if (UNIX)
     )
 endif ()
 
-# ===============================
+#-----------------------------------------------
 # Tests (GoogleTest)
-# ===============================
+#-----------------------------------------------
 find_package(GTest QUIET)
 
 if (NOT GTest_FOUND)
@@ -165,13 +182,14 @@ include(GoogleTest)
 gtest_discover_tests(tests)
 
 
-# ===============================
+#-----------------------------------------------
 # Install (custom layout)
-# ===============================
+#-----------------------------------------------
 if (UUGEAR_INSTALL)
     include(GNUInstallDirs)
 
     # Base install paths
+    set(UUGEAR_INCLUDE_DIR "${CMAKE_INSTALL_INCLUDEDIR}/UUGear/Mega4")
     set(UUGEAR_LIB_DIR "${CMAKE_INSTALL_LIBDIR}/uugear/mega4")
     set(UUGEAR_PLUGIN_DIR "${UUGEAR_LIB_DIR}/plugins")
 
@@ -180,10 +198,26 @@ if (UUGEAR_INSTALL)
             LIBRARY DESTINATION ${UUGEAR_LIB_DIR}
     )
 
-    install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-    if (TARGET uugear_storage_plugin)
-        install(TARGETS uugear_storage_plugin
+    install(DIRECTORY include/UUGear/Mega4/
+            DESTINATION ${UUGEAR_INCLUDE_DIR}
+            FILES_MATCHING PATTERN "*.hpp"
+            PATTERN "plugins/*" EXCLUDE
+    )
+
+    #    if (UUGEAR_BUILD_PLUGINS)
+    #        install(DIRECTORY ${UUGEAR_PLUGIN_OUTPUT_DIR}/
+    #                DESTINATION ${UUGEAR_PLUGIN_DIR}
+    #                FILES_MATCHING PATTERN "*.so" PATTERN "*.dll" PATTERN "*.dylib"
+    #        )
+    #    endif ()
+
+    if (TARGET uugear_mega4_StoragePlugin)
+        install(FILES
+                ${UUGEAR_STORAGE_PLUGIN_INCLUDE}
+                DESTINATION ${UUGEAR_INCLUDE_DIR}/plugins
+        )
+        install(TARGETS uugear_mega4_StoragePlugin
                 LIBRARY DESTINATION ${UUGEAR_PLUGIN_DIR}
                 RUNTIME DESTINATION ${UUGEAR_PLUGIN_DIR}
         )
