@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <libmount/libmount.h>
 
 
 namespace fs = std::filesystem;
@@ -99,40 +100,80 @@ namespace UUGear::Mega4
         return "";
     }
 
-    /**
-     * Mounts the device at the specified mount point using a system call.
-     */
+
+    // ================== NUEVAS IMPLEMENTACIONES USANDO LIBMOUNT ==================
     bool StoragePlugin::mountDevice(const std::string& device, const std::string& mountPoint)
     {
-        const std::string cmd = "mount " + device + " " + mountPoint + " 2>/dev/null";
-        return system(cmd.c_str()) == 0;
+    #if defined(__linux__)
+        struct libmnt_context* cxt = mnt_new_context();
+        if (!cxt)
+        {
+            std::cerr << "[StoragePlugin] Failed to create libmount context\n";
+            return false;
+        }
+
+        mnt_context_set_source(cxt, device.c_str());
+        mnt_context_set_target(cxt, mountPoint.c_str());
+        mnt_context_set_fstype(cxt, "auto"); // deja que el kernel detecte el tipo
+
+        int status = mnt_context_mount(cxt);
+        if (status != 0)
+        {
+            char buf[256];
+            mnt_context_get_excode(cxt, status, buf, sizeof(buf));
+            std::cerr << "[StoragePlugin] Mount error (" << status << "): " << buf << "\n";
+            mnt_free_context(cxt);
+            return false;
+        }
+
+        mnt_free_context(cxt);
+        return true;
+    #else
+        std::cerr << "[StoragePlugin] Mount not supported on this platform\n";
+        return false;
+    #endif
     }
 
-    /**
-     * Unmounts the device using umount.
-     */
     bool StoragePlugin::unmountDevice(const std::string& mountPoint)
     {
-        const std::string cmd = "umount " + mountPoint + " 2>/dev/null";
-        return system(cmd.c_str()) == 0;
+    #if defined(__linux__)
+        struct libmnt_context* cxt = mnt_new_context();
+        if (!cxt)
+        {
+            std::cerr << "[StoragePlugin] Failed to create libmount context\n";
+            return false;
+        }
+
+        mnt_context_set_target(cxt, mountPoint.c_str());
+        int status = mnt_context_umount(cxt);
+        if (status != 0)
+        {
+            char buf[256];
+            mnt_context_get_excode(cxt, status, buf, sizeof(buf));
+            std::cerr << "[StoragePlugin] Unmount error (" << status << "): " << buf << "\n";
+            mnt_free_context(cxt);
+            return false;
+        }
+
+        mnt_free_context(cxt);
+        return true;
+    #else
+        std::cerr << "[StoragePlugin] Unmount not supported on this platform\n";
+        return false;
+    #endif
     }
 
-    /**
-  * Returns the path of the mounted device for the given PortConnectionInfo.
-  * It dynamically checks if the device is mounted.
-  */
-    std::string StoragePlugin::getMountPoint(const PortConnectionInfo& info) const
+    // ==============================================================================
+
+    std::string StoragePlugin::getMountPoint(const PortConnectionInfo& info)
     {
-        // Ensure that the port number is within a valid range
         if (info.portNumber < 1 || info.portNumber > 4)
         {
             throw std::invalid_argument("Invalid port number: " + std::to_string(info.portNumber));
         }
 
-        // Construct the expected mount point based on the port number
         const std::string mountPoint = "/mnt/mega4/port" + std::to_string(info.portNumber);
 
-        // Verify that the mount point exists and is a valid directory
         if (fs::exists(mountPoint) && fs::is_directory(mountPoint))
         {
             return mountPoint;
@@ -142,6 +183,7 @@ namespace UUGear::Mega4
             throw std::runtime_error("Mount point not found or is not a directory for port " + std::to_string(info.portNumber));
         }
     }
+
 
     bool StoragePlugin::writeToFile(const PortConnectionInfo& info, const std::string& filename, const std::string& data)
     {

@@ -21,6 +21,7 @@ class UUGear::Mega4::StoragePlugin final : public DevicePlugin
 {
 public:
     StoragePlugin() = default;
+
     ~StoragePlugin() override = default;
 
     [[nodiscard]] std::string name() const override { return "StoragePlugin"; }
@@ -31,9 +32,10 @@ public:
 
     void onDeviceDisconnected(const PortConnectionInfo& info) override;
 
-    [[nodiscard]] std::string getMountPoint(const PortConnectionInfo& info) const;
-    [[nodiscard]] bool canHandleStorage(const PortConnectionInfo& info) const;
+    [[nodiscard]] static std::string getMountPoint(const PortConnectionInfo& info);
+
     bool writeToFile(const PortConnectionInfo& info, const std::string& filename, const std::string& data);
+
     std::string readFromFile(const PortConnectionInfo& info, const std::string& filename);
 
 private:
