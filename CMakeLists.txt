@@ -23,13 +23,13 @@ function(detect_processor_count VAR_NAME)
     include(ProcessorCount)
     ProcessorCount(_DETECTED_COUNT)
 
-    if(NOT _DETECTED_COUNT OR _DETECTED_COUNT EQUAL 0)
+    if (NOT _DETECTED_COUNT OR _DETECTED_COUNT EQUAL 0)
         set(${VAR_NAME} 4 PARENT_SCOPE)
         message(WARNING "Could not determine processor count, defaulting to 4")
-    else()
+    else ()
         set(${VAR_NAME} ${_DETECTED_COUNT} PARENT_SCOPE)
         message(STATUS "Processor count detected: ${_DETECTED_COUNT}")
-    endif()
+    endif ()
 endfunction()
 
 #-----------------------------------------------
@@ -191,7 +191,7 @@ if (UUGEAR_BUILD_PLUGINS)
 
     register_uugear_plugin(uugear_mega4_StoragePlugin ${UUGEAR_STORAGE_PLUGIN_SOURCE})
 
-    add_compile_definitions(UUGEAR_HAS_STORAGE_PLUGIN)
+    target_compile_definitions(uugear_mega4_lib PUBLIC UUGEAR_HAS_STORAGE_PLUGIN)
 endif ()
 
 #-----------------------------------------------
@@ -239,7 +239,7 @@ if (UUGEAR_BUILD_PLUGINS AND UUGEAR_PLUGIN_TARGETS)
             DEPENDS ${UUGEAR_PLUGIN_TARGETS}
             COMMENT "Building all UUGear Mega4 plugins"
     )
-endif()
+endif ()
 
 # 2. Target “full build” (core library + all plugins)
 add_custom_target(uugear_full_build
