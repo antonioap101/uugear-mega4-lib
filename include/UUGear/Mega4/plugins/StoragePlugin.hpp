@@ -1,7 +1,11 @@
 #ifndef UUGEAR_MEGA4_LIB_STORAGEPLUGIN_HPP
 #define UUGEAR_MEGA4_LIB_STORAGEPLUGIN_HPP
 
-#ifdef UUGEAR_HAS_STORAGE_PLUGIN
+#if !defined(UUGEAR_HAS_STORAGE_PLUGIN) || defined(UUGEAR_PLUGIN_LINK_MODE_MODULE)
+    // Definición completa de la clase StoragePlugin (como tienes ahora)
+    #warning "StoragePlugin is not available (either UUGEAR_HAS_STORAGE_PLUGIN=OFF or link mode = MODULE)"
+#else
+
 
 #include "UUGear/Mega4/DevicePlugin.hpp"
 #include <string>
@@ -48,11 +52,6 @@ private:
 // Factory entry points for dynamic loading
 extern "C" UUGear::Mega4::DevicePlugin* createPlugin();
 extern "C" void destroyPlugin(UUGear::Mega4::DevicePlugin* plugin);
-
-
-#else  // UUGEAR_HAS_STORAGE_PLUGIN not defined or false
-
-#warning "UUGEAR_HAS_STORAGE_PLUGIN is not enabled; StoragePlugin API is unavailable."
 
 #endif // UUGEAR_HAS_STORAGE_PLUGIN
 

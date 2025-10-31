@@ -1,5 +1,9 @@
 #include <gtest/gtest.h>
+#if defined(UUGEAR_PLUGIN_LINK_MODE_MODULE)
 #include "UUGear/Mega4/PluginManager.hpp"
+#else
+#include "UUGear/Mega4/plugins/StoragePlugin.hpp"
+#endif
 #include "UUGear/Mega4/Mega4Hub.hpp"
 #include "UUGear/Mega4/DevicePlugin.hpp"
 #include "UUGear/Mega4/Mega4Types.hpp"
@@ -30,6 +34,7 @@ static PortConnectionInfo makeMockPort(
 // ------------------------------------------------------------------
 // Utility: dynamically load a plugin
 // ------------------------------------------------------------------
+#if defined(UUGEAR_PLUGIN_LINK_MODE_MODULE)
 static DevicePlugin* loadPlugin(const std::string& pluginPath, void** handleOut)
 {
     *handleOut = dlopen(pluginPath.c_str(), RTLD_NOW);
@@ -61,10 +66,12 @@ static void unloadPlugin(void* handle, DevicePlugin* plugin)
 
     dlclose(handle);
 }
+#endif
 
 // ------------------------------------------------------------------
 // Direct dynamic plugin test (realistic loading via dlopen)
 // ------------------------------------------------------------------
+#if defined(UUGEAR_PLUGIN_LINK_MODE_MODULE)
 TEST(StoragePlugin, DynamicLoadAndDetection)
 {
 #ifdef UUGEAR_PLUGIN_DIR
@@ -93,10 +100,12 @@ TEST(StoragePlugin, DynamicLoadAndDetection)
 
     unloadPlugin(handle, plugin);
 }
+#endif
 
 // ------------------------------------------------------------------
 // Simulated mount/unmount operations through dynamic plugin
 // ------------------------------------------------------------------
+#if defined(UUGEAR_PLUGIN_LINK_MODE_MODULE)
 TEST(StoragePlugin, DynamicMountUnmountSimulation)
 {
 #ifdef UUGEAR_PLUGIN_DIR
@@ -117,12 +126,15 @@ TEST(StoragePlugin, DynamicMountUnmountSimulation)
 
     unloadPlugin(handle, plugin);
 }
+#endif
 
 // ------------------------------------------------------------------
 // PluginManager integration test (loads all .so plugins)
 // ------------------------------------------------------------------
+#if defined(UUGEAR_PLUGIN_LINK_MODE_MODULE)
 TEST(PluginManager, LoadsPluginsDynamically)
 {
+
 #ifdef UUGEAR_PLUGIN_DIR
     std::string pluginDir = UUGEAR_PLUGIN_DIR;
 #else
@@ -147,3 +159,69 @@ TEST(PluginManager, LoadsPluginsDynamically)
     EXPECT_NO_THROW(manager.handlePortChange(mockDevice, true)); // simulate connect
     EXPECT_NO_THROW(manager.handlePortChange(mockDevice, false)); // simulate disconnect
 }
+#endif
+
+
+// ------------------------------------------------------------------
+// PluginManager new API tests: getPluginByName() and getPluginAs<T>()
+// ------------------------------------------------------------------
+#if defined(UUGEAR_PLUGIN_LINK_MODE_MODULE)
+
+TEST(PluginManager, DynamicLoad_GetByName)
+{
+
+#ifdef UUGEAR_PLUGIN_DIR
+std::string pluginDir = UUGEAR_PLUGIN_DIR;
+#else
+const std::string pluginDir = "./plugins";
+#endif
+
+ASSERT_TRUE (fs::exists(pluginDir)) << "Plugin directory not found: " << pluginDir;
+
+PluginManager manager(pluginDir);
+manager.loadAll();
+
+ASSERT_GT (manager.pluginCount(), 0u) << "No plugins loaded; cannot test dynamic plugins.";
+
+// Try to find the StoragePlugin by name
+DevicePlugin* plugin = manager.getPluginByName("StoragePlugin");
+ASSERT_NE(plugin, nullptr)<< "getPluginByName() returned nullptr for StoragePlugin";
+EXPECT_EQ (plugin->name(), "StoragePlugin");
+
+// Verify that it can handle a mock USB device
+auto mock = makeMockPort(1, true, "USB DISK 3.0", "Wilk");
+EXPECT_TRUE (plugin->canHandle (mock)) << "StoragePlugin did not recognize valid USB device";
+
+// Optional check for consistency
+EXPECT_NO_THROW (manager.handlePortChange(mock, true));
+EXPECT_NO_THROW (manager.handlePortChange(mock, false));
+}
+
+#else  // ----------------------------------------------------------------------
+
+
+// ------------------------------------------------------------------
+// Test group for STATIC/SHARED PLUGIN MODE (linked directly)
+// ------------------------------------------------------------------
+TEST(StoragePlugin, DirectUseAndRTTICheck)
+{
+#if !defined(UUGEAR_HAS_STORAGE_PLUGIN)
+    GTEST_SKIP() << "StoragePlugin not compiled into build (UUGEAR_HAS_STORAGE_PLUGIN=OFF)";
+#endif
+
+    using namespace UUGear::Mega4;
+
+    StoragePlugin plugin;
+
+    EXPECT_EQ(plugin.name(), "StoragePlugin");
+
+    auto mock = makeMockPort(1, true, "USB DISK 3.0", "Wilk");
+    EXPECT_TRUE(plugin.canHandle(mock)) << "StoragePlugin returned false for valid USB device";
+
+    // Test static helper methods
+    fs::create_directories("/mnt/mega4/port" + std::to_string(mock.portNumber));
+    EXPECT_NO_THROW(const auto mountPoint = StoragePlugin::getMountPoint(mock));
+    fs::remove_all("mnt/mega4/port" + std::to_string(mock.portNumber));
+}
+
+#endif // UUGEAR_PLUGIN_LINK_MODE_MODULE

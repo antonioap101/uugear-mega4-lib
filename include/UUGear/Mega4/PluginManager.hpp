@@ -1,6 +1,10 @@
 #ifndef UUGEAR_MEGA4_LIB_PLUGINMANAGER_HPP
 #define UUGEAR_MEGA4_LIB_PLUGINMANAGER_HPP
 
+#ifndef UUGEAR_PLUGIN_LINK_MODE_MODULE
+#warning "PluginManager should not be included/used when UUGEAR_PLUGIN_LINK_MODE_MODULE is not defined."
+#else
+
 #include "UUGear/Mega4/DevicePlugin.hpp"
 #include <string>
 #include <vector>
@@ -31,7 +35,7 @@ public:
      * @param info Information about the port connection change.
      * @param connected True if a device was connected, false if disconnected.
     */
-    void handlePortChange(const PortConnectionInfo& info, bool connected);
+    void handlePortChange(const PortConnectionInfo& info, bool connected) const;
 
     /**
     * @brief Returns all currently loaded plugin instances.
@@ -44,6 +48,20 @@ public:
      */
     [[nodiscard]] size_t pluginCount() const noexcept;
 
+    // ----------------------------- Template Specializations ----------------------------
+    DevicePlugin* getPluginByName(const std::string& name) const;
+
+    template <typename T>
+    T* getPluginAs() const
+    {
+        for (auto& plugin : plugins_)
+        {
+            if (auto* casted = dynamic_cast<T*>(plugin.instance))
+                return casted;
+        }
+        return nullptr;
+    }
+
 private:
     struct LoadedPlugin
     {
@@ -55,5 +73,7 @@ private:
     std::vector<LoadedPlugin> plugins_;
     std::string directory_;
 };
+
+#endif // UUGEAR_PLUGIN_LINK_MODE_MODULE
 
 #endif //UUGEAR_MEGA4_LIB_PLUGINMANAGER_HPP

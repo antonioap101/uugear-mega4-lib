@@ -11,8 +11,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON) # bueno para .so y para -fPIC
 option(UUGEAR_INSTALL "Enable installation targets" OFF)
 option(UUGEAR_LINK_CORE_LIB "Link plugins against core library" ON)
 option(UUGEAR_BUILD_PLUGINS "Build bundled plugins" ON)
+set(UUGEAR_PLUGIN_LINK_MODE "SHARED" CACHE STRING "Plugin link mode: MODULE, STATIC, or SHARED")
+set_property(CACHE UUGEAR_PLUGIN_LINK_MODE PROPERTY STRINGS MODULE STATIC SHARED)
 
-include(FetchContent)
 include(CTest)
 
 # -----------------------------------------------
@@ -129,6 +130,19 @@ target_link_libraries(uugear_mega4_lib
         PUBLIC ${LIBUSB_LIBRARIES}
 )
 
+# --------------------------- Propagate the plugin link mode as a compile definition ---------------------------
+
+message(STATUS "Building plugins as ${UUGEAR_PLUGIN_LINK_MODE} libraries")
+if (UUGEAR_PLUGIN_LINK_MODE STREQUAL "MODULE")
+    target_compile_definitions(uugear_mega4_lib PUBLIC UUGEAR_PLUGIN_LINK_MODE_MODULE)
+elseif (UUGEAR_PLUGIN_LINK_MODE STREQUAL "STATIC")
+    target_compile_definitions(uugear_mega4_lib PUBLIC UUGEAR_PLUGIN_LINK_MODE_STATIC)
+elseif (UUGEAR_PLUGIN_LINK_MODE STREQUAL "SHARED")
+    target_compile_definitions(uugear_mega4_lib PUBLIC UUGEAR_PLUGIN_LINK_MODE_SHARED)
+else ()
+    message(FATAL_ERROR "Invalid UUGEAR_PLUGIN_LINK_MODE: ${UUGEAR_PLUGIN_LINK_MODE}. Valid options are: MODULE, STATIC, SHARED")
+endif ()
+
 # dlfcn para Linux (macOS no necesita -ldl)
 if (UNIX AND NOT APPLE)
     target_link_libraries(uugear_mega4_lib PRIVATE dl)
@@ -143,7 +157,18 @@ set(UUGEAR_PLUGIN_OUTPUT_DIR "${CMAKE_BINARY_DIR}/plugins")
 # --------------- Function to simplify plugin registration ---------------
 function(register_uugear_plugin plugin_name plugin_src)
     message(STATUS "register_uugear_plugin(): Registering plugin with name: ${dir} from source: ${plugin_src}")
-    add_library(${plugin_name} MODULE ${plugin_src})
+
+    # Determine library type from global option
+    if (UUGEAR_PLUGIN_LINK_MODE STREQUAL "STATIC")
+        set(_lib_type STATIC)
+    elseif (UUGEAR_PLUGIN_LINK_MODE STREQUAL "SHARED")
+        set(_lib_type SHARED)
+    else ()
+        set(_lib_type MODULE)
+    endif ()
+
+
+    add_library(${plugin_name} ${_lib_type} ${plugin_src})
 
     target_include_directories(${plugin_name}
             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -163,7 +188,7 @@ function(register_uugear_plugin plugin_name plugin_src)
     # Add the plugin target to the list
     set(UUGEAR_PLUGIN_TARGETS ${UUGEAR_PLUGIN_TARGETS} ${plugin_name} PARENT_SCOPE)
 
-    message(STATUS "Registered plugin: ${plugin_name}")
+    message(STATUS "Registered ${plugin_name} as ${_lib_type}")
 endfunction()
 
 # --------------- Check file existence function  ---------------
@@ -189,9 +214,10 @@ if (UUGEAR_BUILD_PLUGINS)
     set(UUGEAR_STORAGE_PLUGIN_SOURCE "src/Mega4/plugins/StoragePlugin/StoragePlugin.cpp")
     check_file_existence(${UUGEAR_STORAGE_PLUGIN_SOURCE})
 
+    # Register the plugin
     register_uugear_plugin(uugear_mega4_StoragePlugin ${UUGEAR_STORAGE_PLUGIN_SOURCE})
-
     target_compile_definitions(uugear_mega4_lib PUBLIC UUGEAR_HAS_STORAGE_PLUGIN)
+
 endif ()
 
 #-----------------------------------------------
@@ -284,11 +310,27 @@ add_executable(tests
 # Asegurarse de que los plugins se construyan antes de los tests
 add_dependencies(tests ${UUGEAR_PLUGIN_TARGETS})
 
-target_link_libraries(tests
+target_link_libraries(tests PRIVATE
         uugear_mega4_lib
         GTest::gtest
         GTest::gtest_main
 )
+
+# ---------------------------------------------------------------------------
+# Link StoragePlugin only if it is built as STATIC or SHARED
+# ---------------------------------------------------------------------------
+if (UUGEAR_PLUGIN_LINK_MODE STREQUAL "STATIC" OR UUGEAR_PLUGIN_LINK_MODE STREQUAL "SHARED")
+    if (TARGET uugear_mega4_StoragePlugin)
+        message(STATUS "Linking tests with StoragePlugin (mode: ${UUGEAR_PLUGIN_LINK_MODE})")
+        target_link_libraries(tests PRIVATE uugear_mega4_StoragePlugin)
+    else()
+        message(WARNING "StoragePlugin target not found; tests will be built without it.")
+    endif()
+else()
+    message(STATUS "Not linking tests with StoragePlugin — using dynamic (MODULE) mode")
+endif()
+
+
 
 include(GoogleTest)
 gtest_discover_tests(tests)

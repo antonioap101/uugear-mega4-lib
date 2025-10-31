@@ -1,7 +1,9 @@
+#ifdef UUGEAR_PLUGIN_LINK_MODE_MODULE
 #include "UUGear/Mega4/PluginManager.hpp"
 #include <filesystem>
 #include <dlfcn.h>
 #include <iostream>
+
 
 namespace fs = std::filesystem;
 
@@ -61,7 +63,7 @@ namespace UUGear::Mega4
         }
     }
 
-    void PluginManager::handlePortChange(const PortConnectionInfo& info, bool connected)
+    void PluginManager::handlePortChange(const PortConnectionInfo& info, bool connected) const
     {
         for (auto& plugin : plugins_)
         {
@@ -87,4 +89,18 @@ namespace UUGear::Mega4
     {
         return plugins_.size();
     }
+
+
+    // ----------------------------- Template Specializations ----------------------------
+    DevicePlugin* PluginManager::getPluginByName(const std::string& name) const
+    {
+        for (auto& plugin : plugins_)
+        {
+            if (plugin.instance && plugin.instance->name() == name)
+                return plugin.instance;
+        }
+        return nullptr;
+    }
 } // namespace UUGear::Mega4
+
+#endif // UUGEAR_PLUGIN_LINK_MODE_MODULE
