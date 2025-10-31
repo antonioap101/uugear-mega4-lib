@@ -21,7 +21,7 @@ namespace UUGear::Mega4
  * @brief Plugin that automatically mounts and unmounts USB storage devices
  *        connected to the UUGear MEGA4 hub.
  */
-class UUGear::Mega4::StoragePlugin final : public DevicePlugin
+class UUGear::Mega4::StoragePlugin : public DevicePlugin
 {
 public:
     StoragePlugin() = default;
@@ -30,17 +30,17 @@ public:
 
     [[nodiscard]] std::string name() const override { return "StoragePlugin"; }
 
-    [[nodiscard]] bool canHandle(const PortConnectionInfo& info) const override;
+    [[nodiscard]] virtual bool canHandle(const PortConnectionInfo& info) const override;
 
-    void onDeviceConnected(const PortConnectionInfo& info) override;
+    virtual void onDeviceConnected(const PortConnectionInfo& info) override;
 
-    void onDeviceDisconnected(const PortConnectionInfo& info) override;
+    virtual void onDeviceDisconnected(const PortConnectionInfo& info) override;
 
-    [[nodiscard]] static std::string getMountPoint(const PortConnectionInfo& info);
+    [[nodiscard]] virtual std::string getMountPoint(const PortConnectionInfo& info);
 
-    bool writeToFile(const PortConnectionInfo& info, const std::string& filename, const std::string& data);
+    virtual  bool writeToFile(const PortConnectionInfo& info, const std::string& filename, const std::string& data);
 
-    std::string readFromFile(const PortConnectionInfo& info, const std::string& filename);
+    virtual std::string readFromFile(const PortConnectionInfo& info, const std::string& filename);
 
 private:
     [[nodiscard]] static std::string findBlockDevice(const PortConnectionInfo& info);

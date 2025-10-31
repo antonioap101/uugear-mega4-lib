@@ -33,21 +33,21 @@ public:
      * @brief Scans the USB bus for VIA Labs VL817 hubs (used in MEGA4).
      * @return A list of detected hubs.
      */
-    [[nodiscard]] std::vector<DeviceInfo> listDevices() const;
+    [[nodiscard]] virtual std::vector<DeviceInfo> listDevices() const;
 
     /**
      * @brief Turns a port ON.
      * @param port Port number (1–4).
      * @param deviceIndex Index of the detected hub (default = 0).
      */
-    void powerOn(int port, int deviceIndex = 0) const;
+    virtual void powerOn(int port, int deviceIndex = 0) const;
 
     /**
      * @brief Turns a port OFF.
      * @param port Port number (1–4).
      * @param deviceIndex Index of the detected hub (default = 0).
      */
-    void powerOff(int port, int deviceIndex = 0) const;
+    virtual void powerOff(int port, int deviceIndex = 0) const;
 
     /**
      * @brief Queries the actual ON/OFF power state for all four ports
@@ -56,9 +56,9 @@ public:
      * @return Array<bool,4> with true = ON, false = OFF.
      * @throws std::out_of_range or std::runtime_error on failure.
      */
-    [[nodiscard]] std::array<bool, 4> getPortStates(int deviceIndex = 0) const;
+    [[nodiscard]] virtual std::array<bool, 4> getPortStates(int deviceIndex = 0) const;
 
-    [[nodiscard]] bool isPortOn(int port, int deviceIndex = 0) const;
+    [[nodiscard]] virtual bool isPortOn(int port, int deviceIndex = 0) const;
 
     /**
  * @brief Lists all devices connected to each of the 4 downstream ports
@@ -66,7 +66,7 @@ public:
  * @param deviceIndex Index of the detected hub (default = 0)
  * @return Vector of 4 entries, one per port.
  */
-    [[nodiscard]] std::vector<PortConnectionInfo> getPortConnections(int deviceIndex = 0) const;
+    [[nodiscard]] virtual std::vector<PortConnectionInfo> getPortConnections(int deviceIndex = 0) const;
 
 private:
     struct Impl;
